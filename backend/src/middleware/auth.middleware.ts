@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { RequestContext } from '@mikro-orm/core';
+import { EntityManager, RequestContext, UniqueConstraintViolationException } from '@mikro-orm/core';
 import { getFirebaseAuth, isDevAuth } from '../config/firebase';
 import { User } from '../entities/User';
 
@@ -9,6 +9,24 @@ declare global {
     interface Request {
       user?: User;
     }
+  }
+}
+
+/**
+ * Erster Login: Beim ersten Laden schickt das Dashboard mehrere Anfragen gleichzeitig,
+ * die alle den Benutzer anlegen wollen. Gewinnt eine andere Anfrage, den vorhandenen laden.
+ */
+async function createUserOnce(em: EntityManager, firebaseUid: string, email: string): Promise<User> {
+  try {
+    const created = em.create(User, { firebaseUid, email, currency: 'EUR', language: 'de', remindersEnabled: false, reminderDaysBefore: 7, reminderOverdue: false, createdAt: new Date() });
+    await em.flush();
+    return created;
+  } catch (err) {
+    if (err instanceof UniqueConstraintViolationException) {
+      em.clear();
+      return em.findOneOrFail(User, { firebaseUid });
+    }
+    throw err;
   }
 }
 
@@ -38,8 +56,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     let user = await em.findOne(User, { firebaseUid });
     if (!user) {
-      user = em.create(User, { firebaseUid, email, currency: 'EUR', language: 'de', remindersEnabled: false, reminderDaysBefore: 7, reminderOverdue: false, createdAt: new Date() });
-      await em.flush();
+      user = await createUserOnce(em, firebaseUid, email);
     }
     req.user = user;
     next();

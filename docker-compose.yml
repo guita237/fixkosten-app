@@ -36,8 +36,23 @@ services:
     volumes:
       - ./secrets/firebase-service-account.json:/run/secrets/firebase.json:ro
     ports:
-      # Nur lokal erreichbar; nach außen über den Reverse Proxy (Caddy/Nginx/Traefik)
+      # Nur lokal erreichbar; nach außen über den Reverse Proxy (nginx)
       - "127.0.0.1:5000:5000"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-}
+        VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN:-}
+        VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID:-}
+        VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      # Frontend + /api; nach außen über den Reverse Proxy (HTTPS)
+      - "127.0.0.1:8080:80"
 
 volumes:
   db-data:

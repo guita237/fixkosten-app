@@ -27,6 +27,38 @@ Le port 5432 est déjà pris ? Utilise `-p 5433:5432` et mets `DB_PORT=5433` dan
 
 Nouvelle migration après un changement d'entité : `npm run migration:create`.
 
+## Frontend (React + Vite)
+
+`frontend/` : React 18, TypeScript, Vite, TanStack Query, React Router, Firebase Auth. Interface en DE/FR/EN ; la langue est aussi enregistrée dans le backend pour les e-mails.
+
+**Design « Brume »**, pensé d'abord pour le mobile : des aplats doux, Fraunces pour les chiffres et les titres, Figtree pour le texte. Chaque catégorie garde sa couleur : l'interface la mélange en pastel (`color-mix`) en clair comme en sombre. Thème clair, sombre ou système (Einstellungen › Darstellung).
+Écrans : Monat (reste disponible, mosaïque des catégories, rappel de préavis, prochains paiements, versement de tontine), Ausgaben (regroupées par catégorie), Neue Ausgabe (panneau qui monte du bas, détails repliables), Zahlungen (on touche le rond pour cocher), Mehr → Kontoimport et Einstellungen. Sur mobile : barre d'onglets en pilule et bouton « + » ; sur ordinateur : navigation en haut.
+
+**PWA** : `manifest.webmanifest`, icônes et service worker (`public/sw.js`, actif seulement dans le build de production). Sur iPhone : Safari → Partager → « Sur l'écran d'accueil » ; sur Android : Chrome → « Installer l'application ». Les données `/api` ne sont jamais mises en cache.
+
+### Démarrer en local (sans Firebase)
+
+```bash
+# Terminal 1 – backend (AUTH_MODE=dev dans backend/.env)
+cd backend && npm run dev
+
+# Terminal 2 – frontend
+cd frontend
+cp .env.example .env          # VITE_AUTH_MODE=dev
+npm install
+npm run dev                   # http://localhost:5173  (/api passe par le proxy vers :5000)
+```
+
+En mode dev, le frontend envoie l'en-tête `x-dev-user: dev-user`. Ce sont les mêmes données que celles de la collection Postman.
+
+### Avec Firebase
+
+Dans `frontend/.env`, vide `VITE_AUTH_MODE` et renseigne les `VITE_FIREBASE_*` (console Firebase › Paramètres du projet › Tes applications › Web). Active aussi la connexion « E-mail/Mot de passe » dans Firebase Authentication. Le backend a besoin du compte de service (`GOOGLE_APPLICATION_CREDENTIALS`) et ne doit pas avoir `AUTH_MODE=dev`.
+
+### Tests
+
+`npm test` (format et calcul des échéances). Le parcours complet (réglages → dépenses → dashboard → montants → paiements → import CSV → sombre + français → ordinateur → suppression) a été testé dans Chrome, en vue mobile.
+
 ## Postman
 
 Dossier `postman/` :
@@ -47,7 +79,9 @@ mkdir secrets && cp <service-account>.json secrets/firebase-service-account.json
 docker compose up -d --build
 ```
 
-L'API écoute seulement sur `127.0.0.1:5000`. Il faut l'exposer via ton reverse proxy (HTTPS).
+Trois conteneurs : `db` (PostgreSQL), `api` (backend) et `web` (nginx : frontend + proxy `/api` → `api:5000`).
+Le reverse proxy (HTTPS) pointe vers `127.0.0.1:8080` (web). L'API est aussi joignable seule sur `127.0.0.1:5000`.
+Les variables `VITE_FIREBASE_*` dans `.env` sont intégrées au moment du build du frontend.
 
 ## API (`/api`, Bearer token Firebase sauf `/health`)
 
@@ -136,7 +170,7 @@ POST /api/expenses
 - impayés : seulement si `reminderOverdue`, et seulement sur les 14 derniers jours ;
 - `reminder_logs` empêche les doublons ; si un passage du cron est manqué, le rappel est envoyé au suivant.
 
-Envoi par **Resend** (API HTTP via le port 443, qui n'est pas bloqué par Hetzner, contrairement aux ports SMTP 25 et 465) : mets `RESEND_API_KEY` et `MAIL_FROM`. Le domaine de l'expéditeur (par exemple `guita.dev`) doit être vérifié dans Resend : enregistrements DNS SPF/DKIM chez Hostinger. Pour tester sans domaine vérifié : `MAIL_FROM=onboarding@resend.dev`, mais Resend n'envoie alors qu'à l'adresse de ton compte Resend. Le SMTP reste possible en option (`SMTP_*`). Sans clé ni SMTP, les e-mails sont seulement écrits dans le log.
+Envoi par **Resend** (API HTTP via le port 443, qui n'est pas bloqué par Hetzner, contrairement aux ports SMTP 25 et 465) : mets `RESEND_API_KEY` et `MAIL_FROM`. Expéditeur : `noreply@mail.guita.dev`. C'est le sous-domaine `mail.guita.dev`, déjà vérifié dans Resend pour les autres projets. Pour tester sans domaine vérifié : `MAIL_FROM=onboarding@resend.dev`, mais Resend n'envoie alors qu'à l'adresse de ton compte Resend. Le SMTP reste possible en option (`SMTP_*`). Sans clé ni SMTP, les e-mails sont seulement écrits dans le log.
 
 **Import CSV** : formats reconnus automatiquement : Sparkasse (CSV-CAMT V2), N26 (actuel et ancien), Revolut (seulement les opérations `COMPLETED`). Tout autre export (Vivid, etc.) est détecté par les noms de colonnes (date/Datum/Buchungstag, montant/Betrag/Amount, …), même avec des lignes d'en-tête avant le tableau. En dernier recours, indique les colonnes à la main : `?dateColumn=Datum&amountColumn=Betrag&counterpartyColumn=Empfänger&referenceColumn=Verwendungszweck`. L'encodage UTF-8 ou Latin-1 est détecté, ainsi que le séparateur `;`, `,` ou tabulation.
 Rapprochement : montant (exact, ou ±2 % / 1 €), date (±10 jours autour de l'échéance), mots du nom ou du fournisseur dans le libellé. Une échéance déjà payée n'est jamais proposée deux fois. Un montant différent n'est proposé que si le nom correspond nettement et que la date est à 3 jours près (confiance `MEDIUM`).
@@ -174,4 +208,3 @@ backend/src
 ## Prochaines étapes
 
 1. Déploiement : sauvegarde, durcissement de l'API, CI GitHub Actions → Hetzner
-2. Frontend React + Vite à partir de la maquette
