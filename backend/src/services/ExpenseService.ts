@@ -48,6 +48,7 @@ export function toExpenseDto(e: Expense, referenceDate: string = today()): Expen
       autoRenewMonths: e.contract.autoRenewMonths,
       cancelled: e.contract.cancelled,
       cancelledOn: e.contract.cancelledOn ?? null,
+      consumerContract: e.contract.consumerContract,
     };
   }
   const priceChanges = e.priceChanges.getItems().map((c) => ({
@@ -232,7 +233,7 @@ export class ExpenseService {
     }
     let contract = expense.contract;
     if (!contract) {
-      contract = this.em.create(Contract, { expense, startDate: input.startDate, noticeValue: input.noticeValue, noticeUnit: input.noticeUnit, autoRenewMonths: input.autoRenewMonths, cancelled: input.cancelled });
+      contract = this.em.create(Contract, { expense, startDate: input.startDate, noticeValue: input.noticeValue, noticeUnit: input.noticeUnit, autoRenewMonths: input.autoRenewMonths, cancelled: input.cancelled, consumerContract: input.consumerContract });
       expense.contract = contract;
     }
     contract.startDate = input.startDate;
@@ -242,5 +243,6 @@ export class ExpenseService {
     contract.autoRenewMonths = input.autoRenewMonths;
     contract.cancelled = input.cancelled;
     contract.cancelledOn = input.cancelledOn ?? null;
+    contract.consumerContract = input.consumerContract;
   }
 }

@@ -52,6 +52,11 @@ export interface ContractInput {
   cancelled: boolean;
   /** Datum, an dem gekündigt wurde; bestimmt, welche Laufzeitperiode endet */
   cancelledOn?: string | null;
+  /**
+   * Verbrauchervertrag (§ 309 Nr. 9 BGB, Verträge ab 01.03.2022): nach der Erstlaufzeit
+   * nur noch unbefristete Verlängerung, jederzeit mit einem Monat Frist kündbar.
+   */
+  consumerContract?: boolean;
 }
 
 export interface ContractStatus {
@@ -103,6 +108,10 @@ export function contractStatus(contract: ContractInput, referenceDate: string): 
   let termEnd = contract.endDate;
   let deadline = subtractNotice(termEnd, contract.noticeValue, contract.noticeUnit);
 
+  if (contract.consumerContract) {
+    return consumerContractStatus(contract, contract.endDate, deadline, referenceDate);
+  }
+
   // Bis zu welchem Stichtag laufen Verlängerungen? Ungekündigt: heute.
   // Gekündigt: das Kündigungsdatum (ohne Datum bleibt die erste Laufzeit).
   let renewUntil: string | null = referenceDate;
@@ -125,6 +134,45 @@ export function contractStatus(contract: ContractInput, referenceDate: string): 
     cancellationDeadline: deadline,
     daysUntilDeadline: diffDays(referenceDate, deadline),
     earliestEndIfCancelledToday: null,
+  };
+}
+
+/** Später von zwei Daten. */
+function laterOf(a: string, b: string): string {
+  if (a > b) {
+    return a;
+  }
+  return b;
+}
+
+/**
+ * Verbrauchervertrag: Bis zur Frist der Erstlaufzeit gilt diese. Danach läuft der Vertrag
+ * unbefristet weiter und endet frühestens einen Monat nach Zugang der Kündigung
+ * (nicht vor dem Ende der Erstlaufzeit).
+ */
+function consumerContractStatus(contract: ContractInput, firstTermEnd: string, firstDeadline: string, referenceDate: string): ContractStatus {
+  if (contract.cancelled) {
+    let termEnd = firstTermEnd;
+    if (contract.cancelledOn && contract.cancelledOn > firstDeadline) {
+      termEnd = laterOf(firstTermEnd, addMonths(contract.cancelledOn, 1));
+    }
+    return { termEnd, cancellationDeadline: null, daysUntilDeadline: null, earliestEndIfCancelledToday: null };
+  }
+
+  if (referenceDate <= firstDeadline) {
+    return {
+      termEnd: firstTermEnd,
+      cancellationDeadline: firstDeadline,
+      daysUntilDeadline: diffDays(referenceDate, firstDeadline),
+      earliestEndIfCancelledToday: null,
+    };
+  }
+
+  return {
+    termEnd: null,
+    cancellationDeadline: null,
+    daysUntilDeadline: null,
+    earliestEndIfCancelledToday: laterOf(firstTermEnd, addMonths(referenceDate, 1)),
   };
 }
 

@@ -31,6 +31,10 @@ export class Contract {
   @Property({ type: 'boolean' })
   cancelled: boolean = false;
 
+  // Verbrauchervertrag: nach Erstlaufzeit monatlich kündbar (§ 309 Nr. 9 BGB)
+  @Property({ type: 'boolean' })
+  consumerContract: boolean = false;
+
   // Datum der Kündigung; bestimmt, welche Laufzeitperiode endet
   @Property({ type: 'date', nullable: true })
   cancelledOn?: string | null;

@@ -1120,6 +1120,649 @@
       ]
     },
     {
+      "name": "6 – V2 (Zahlungen, Erinnerungen, Import)",
+      "item": [
+        {
+          "name": "Einstellungen: Sprache FR, Erinnerungen an",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"fr\",\n  \"remindersEnabled\": true,\n  \"reminderDaysBefore\": 14\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const u = pm.response.json();",
+                  "pm.test(\"gespeichert\", () => { pm.expect(u.language).to.eql(\"fr\"); pm.expect(u.remindersEnabled).to.eql(true); pm.expect(u.reminderDaysBefore).to.eql(14); });",
+                  "pm.test(\"Einkommen unverändert\", () => pm.expect(u.monthlyNetIncomeCents).to.eql(300000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Zahlungen November: Miete überfällig",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments?month=2026-11&date=2026-11-18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-11"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-11-18"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const m = pm.response.json().items.find(i => i.expenseId === Number(pm.collectionVariables.get(\"mieteId\")));",
+                  "pm.test(\"überfällig\", () => pm.expect(m.status).to.eql(\"OVERDUE\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Miete November als bezahlt markieren",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{mieteId}}/payments/2026-11-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{mieteId}}",
+                "payments",
+                "2026-11-01"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PAID\",\n  \"paidDate\": \"2026-11-02\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"bezahlt\", () => pm.expect(pm.response.json().status).to.eql(\"PAID\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Zahlungen November: Miete bezahlt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments?month=2026-11&date=2026-11-18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-11"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-11-18"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "const m = b.items.find(i => i.expenseId === Number(pm.collectionVariables.get(\"mieteId\")));",
+                  "pm.test(\"bezahlt am 02.11.\", () => { pm.expect(m.status).to.eql(\"PAID\"); pm.expect(m.paidDate).to.eql(\"2026-11-02\"); });",
+                  "pm.test(\"Summe bezahlt\", () => pm.expect(b.summary.paidCents).to.be.at.least(85000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Keine Fälligkeit an diesem Tag (400)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{mieteId}}/payments/2026-11-02",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{mieteId}}",
+                "payments",
+                "2026-11-02"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PAID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Überfällige Zahlungen",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/overdue?date=2026-11-18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "overdue"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-11-18"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Miete Nov. nicht mehr dabei\", () => pm.expect(pm.response.json().some(d => d.expenseId === Number(pm.collectionVariables.get(\"mieteId\")) && d.dueDate === \"2026-11-01\")).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verbrauchervertrag anlegen (Internet)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Internet\",\n  \"provider\": \"Telekom\",\n  \"amountCents\": 3999,\n  \"frequency\": \"MONTHLY\",\n  \"firstDueDate\": \"2026-08-03\",\n  \"contract\": {\n    \"startDate\": \"2026-08-01\",\n    \"endDate\": \"2028-07-31\",\n    \"noticeValue\": 1,\n    \"noticeUnit\": \"MONTHS\",\n    \"autoRenewMonths\": 12,\n    \"consumerContract\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"internetId\", pm.response.json().id);",
+                  "pm.test(\"Verbrauchervertrag\", () => pm.expect(pm.response.json().contract.consumerContract).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fristen nach Erstlaufzeit: monatlich kündbar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/deadlines?date=2028-09-10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contracts",
+                "deadlines"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2028-09-10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().find(x => x.expenseId === Number(pm.collectionVariables.get(\"internetId\")));",
+                  "pm.test(\"kein 12-Monats-Ende\", () => pm.expect(d.termEnd).to.eql(null));",
+                  "pm.test(\"Ende 1 Monat nach Kündigung\", () => pm.expect(d.earliestEndIfCancelledToday).to.eql(\"2028-10-10\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Erinnerungen Vorschau (Auszahlung in 11 Tagen)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reminders/preview?date=2027-03-25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reminders",
+                "preview"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2027-03-25"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Auszahlung dabei\", () => pm.expect(pm.response.json().some(r => r.kind === \"PAYOUT\" && r.expenseId === Number(pm.collectionVariables.get(\"tontineId\")))).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Erinnerungen jetzt senden",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reminders/run?date=2027-03-25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reminders",
+                "run"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2027-03-25"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"gesendet\", () => pm.expect(b.sent).to.eql(true));",
+                  "pm.test(\"ohne Überfällige (Standard)\", () => pm.expect(b.reminders.every(r => r.kind !== \"OVERDUE\")).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Erneut senden: nichts Neues",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reminders/run?date=2027-03-25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reminders",
+                "run"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2027-03-25"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"keine Doppel-Mail\", () => pm.expect(pm.response.json().sent).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test-E-Mail",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reminders/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reminders",
+                "test"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Empfänger\", () => pm.expect(pm.response.json().to).to.be.a(\"string\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CSV-Import: Vorschau (Sparkasse)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/csv"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/imports/csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "imports",
+                "csv"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "\"Auftragskonto\";\"Buchungstag\";\"Valutadatum\";\"Buchungstext\";\"Verwendungszweck\";\"Glaeubiger ID\";\"Mandatsreferenz\";\"Kundenreferenz (End-to-End)\";\"Sammlerreferenz\";\"Lastschrift Ursprungsbetrag\";\"Auslagenersatz Ruecklastschrift\";\"Beguenstigter/Zahlungspflichtiger\";\"Kontonummer/IBAN\";\"BIC (SWIFT-Code)\";\"Betrag\";\"Waehrung\";\"Info\"\r\n\"DE00123\";\"01.12.26\";\"01.12.26\";\"DAUERAUFTRAG\";\"Miete Dezember\";\"\";\"\";\"\";\"\";\"\";\"\";\"Hausverwaltung\";\"DE00999\";\"XXX\";\"-850,00\";\"EUR\";\"Umsatz gebucht\"\r\n\"DE00123\";\"05.12.26\";\"05.12.26\";\"UEBERWEISUNG\";\"Tontine Dezember\";\"\";\"\";\"\";\"\";\"\";\"\";\"Tontine Gruppe\";\"DE00555\";\"XXX\";\"-100,00\";\"EUR\";\"Umsatz gebucht\"\r\n\"DE00123\";\"10.12.26\";\"10.12.26\";\"KARTENZAHLUNG\";\"Supermarkt\";\"\";\"\";\"\";\"\";\"\";\"\";\"REWE\";\"\";\"\";\"-42,17\";\"EUR\";\"Umsatz gebucht\"",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"Sparkasse erkannt\", () => pm.expect(b.format).to.eql(\"SPARKASSE\"));",
+                  "pm.test(\"3 Buchungen\", () => pm.expect(b.stats.transactions).to.eql(3));",
+                  "const miete = b.suggestions.find(s => s.expenseId === Number(pm.collectionVariables.get(\"mieteId\")));",
+                  "pm.test(\"Miete zugeordnet\", () => pm.expect(miete.targetDate).to.eql(\"2026-12-01\"));",
+                  "pm.test(\"Supermarkt nicht zugeordnet\", () => pm.expect(b.suggestions.some(s => s.transactionIndex === 2)).to.eql(false));",
+                  "const matches = b.suggestions.map(s => ({ type: s.type, expenseId: s.expenseId, targetDate: s.targetDate, bookingDate: s.bookingDate, bookedCents: s.bookedCents, reference: b.transactions[s.transactionIndex].reference }));",
+                  "pm.collectionVariables.set(\"importMatches\", JSON.stringify(matches));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CSV-Import: bestätigen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"matches\": {{importMatches}} }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/imports/confirm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "imports",
+                "confirm"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Zahlungen gebucht\", () => pm.expect(pm.response.json().paymentsRecorded).to.be.at.least(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Zahlungen Dezember: aus CSV bezahlt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments?month=2026-12&date=2026-12-20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2026-12"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-12-20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const m = pm.response.json().items.find(i => i.expenseId === Number(pm.collectionVariables.get(\"mieteId\")));",
+                  "pm.test(\"Quelle CSV\", () => { pm.expect(m.status).to.eql(\"PAID\"); pm.expect(m.source).to.eql(\"CSV\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CSV-Import: unbekanntes Format (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "text/csv"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/imports/csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "imports",
+                "csv"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "foo;bar\n1;2",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "5 – Aufräumen",
       "item": [
         {
@@ -1148,6 +1791,34 @@
                 "exec": [
                   "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"keine Preisänderung mehr\", () => pm.expect(pm.response.json().priceChanges).to.have.lengthOf(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgabe löschen – Internet",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{internetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{internetId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
                 ]
               }
             }
@@ -1266,7 +1937,7 @@
           ]
         },
         {
-          "name": "Nettoeinkommen zurücksetzen",
+          "name": "Einstellungen zurücksetzen",
           "request": {
             "method": "PUT",
             "header": [
@@ -1286,7 +1957,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"monthlyNetIncomeCents\": null\n}",
+              "raw": "{\n  \"monthlyNetIncomeCents\": null,\n  \"language\": \"de\",\n  \"remindersEnabled\": false,\n  \"reminderDaysBefore\": 7\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1332,6 +2003,14 @@
     },
     {
       "key": "priceChangeId",
+      "value": ""
+    },
+    {
+      "key": "internetId",
+      "value": ""
+    },
+    {
+      "key": "importMatches",
       "value": ""
     }
   ]

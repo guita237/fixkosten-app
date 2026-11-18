@@ -38,7 +38,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     let user = await em.findOne(User, { firebaseUid });
     if (!user) {
-      user = em.create(User, { firebaseUid, email, currency: 'EUR', createdAt: new Date() });
+      user = em.create(User, { firebaseUid, email, currency: 'EUR', language: 'de', remindersEnabled: false, reminderDaysBefore: 7, reminderOverdue: false, createdAt: new Date() });
       await em.flush();
     }
     req.user = user;

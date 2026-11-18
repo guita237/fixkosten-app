@@ -97,3 +97,41 @@ describe('Bilanz mit Ende und Preisänderungen', () => {
     expect(monthBalance([kfz], '2027-01').outgoingCents).toBe(0);
   });
 });
+
+describe('Verbrauchervertrag (§ 309 Nr. 9 BGB)', () => {
+  const internet = {
+    endDate: '2028-07-31',
+    noticeValue: 1,
+    noticeUnit: NoticeUnit.MONTHS,
+    autoRenewMonths: 12,
+    cancelled: false,
+    consumerContract: true,
+  };
+
+  it('in der Erstlaufzeit: normale Frist', () => {
+    const s = contractStatus(internet, '2027-01-01');
+    expect(s.termEnd).toBe('2028-07-31');
+    expect(s.cancellationDeadline).toBe('2028-06-30');
+  });
+
+  it('nach der Frist: keine 12-Monats-Verlängerung, monatlich kündbar', () => {
+    const s = contractStatus(internet, '2028-09-10');
+    expect(s.termEnd).toBeNull();
+    expect(s.cancellationDeadline).toBeNull();
+    expect(s.earliestEndIfCancelledToday).toBe('2028-10-10');
+  });
+
+  it('Frist knapp verpasst: Ende frühestens Laufzeitende', () => {
+    expect(contractStatus(internet, '2028-07-05').earliestEndIfCancelledToday).toBe('2028-08-05');
+  });
+
+  it('spät gekündigt: Ende einen Monat nach Kündigung', () => {
+    const s = contractStatus({ ...internet, cancelled: true, cancelledOn: '2028-09-10' }, '2028-09-15');
+    expect(s.termEnd).toBe('2028-10-10');
+    expect(effectiveEndDate(null, { ...internet, cancelled: true, cancelledOn: '2028-09-10' })).toBe('2028-10-10');
+  });
+
+  it('rechtzeitig gekündigt: Ende der Erstlaufzeit', () => {
+    expect(effectiveEndDate(null, { ...internet, cancelled: true, cancelledOn: '2028-06-01' })).toBe('2028-07-31');
+  });
+});

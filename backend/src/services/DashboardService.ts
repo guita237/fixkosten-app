@@ -2,7 +2,8 @@ import { EntityManager } from '@mikro-orm/postgresql';
 import { User } from '../entities/User';
 import { Expense } from '../entities/Expense';
 import { amountAt, contractStatus, effectiveEndDate, monthlyCostCents } from './CostCalculator';
-import { BalanceEntry, BalanceItem, entriesBetween, monthBalance, MonthBalance } from './BalanceCalculator';
+import { BalanceEntry, entriesBetween, monthBalance, MonthBalance } from './BalanceCalculator';
+import { toBalanceItem } from './mappers';
 import { addDays, addMonths, diffDays, formatDate, parseDate } from '../utils/dateOnly';
 
 export interface CategoryTotal {
@@ -50,6 +51,8 @@ export interface ContractDeadline {
   termEnd: string | null;
   cancellationDeadline: string | null;
   daysUntilDeadline: number | null;
+  /** Unbefristet bzw. Verbrauchervertrag nach Erstlaufzeit: frühestes Ende bei Kündigung heute */
+  earliestEndIfCancelledToday: string | null;
 }
 
 export class DashboardService {
@@ -57,19 +60,6 @@ export class DashboardService {
 
   private activeExpenses(): Promise<Expense[]> {
     return this.em.find(Expense, { user: this.user, active: true }, { populate: ['category', 'contract', 'payouts', 'priceChanges'] });
-  }
-
-  private static toBalanceItem(e: Expense): BalanceItem {
-    return {
-      id: e.id,
-      name: e.name,
-      firstDueDate: e.firstDueDate,
-      frequency: e.frequency,
-      amountCents: e.amountCents,
-      payouts: e.payouts.getItems().map((p) => ({ date: p.date, amountCents: p.amountCents, received: p.received })),
-      priceChanges: e.priceChanges.getItems().map((c) => ({ validFrom: c.validFrom, amountCents: c.amountCents })),
-      endDate: effectiveEndDate(e.endDate, e.contract ?? null),
-    };
   }
 
   /** Laufende Fixkosten zum Stichtag (beendete Posten zählen nicht, Preisänderungen schon). */
@@ -116,7 +106,7 @@ export class DashboardService {
     const ref = parseDate(referenceDate);
     const from = formatDate({ year: ref.year, month: ref.month, day: 1 });
     const to = addDays(addMonths(from, months), -1);
-    const items = (await this.activeExpenses()).map(DashboardService.toBalanceItem);
+    const items = (await this.activeExpenses()).map(toBalanceItem);
     return entriesBetween(items, from, to).map((e: BalanceEntry) => ({
       type: e.type,
       expenseId: e.expenseId,
@@ -128,7 +118,7 @@ export class DashboardService {
 
   /** Bilanz eines Monats ('YYYY-MM'): Ausgaben, Auszahlungen, Saldo. */
   async month(month: string): Promise<MonthResult> {
-    const items = (await this.activeExpenses()).map(DashboardService.toBalanceItem);
+    const items = (await this.activeExpenses()).map(toBalanceItem);
     const balance = monthBalance(items, month);
     const income = this.user.monthlyNetIncomeCents ?? null;
     let available: number | null = null;
@@ -168,6 +158,7 @@ export class DashboardService {
         termEnd: status.termEnd,
         cancellationDeadline: status.cancellationDeadline,
         daysUntilDeadline: status.daysUntilDeadline,
+        earliestEndIfCancelledToday: status.earliestEndIfCancelledToday,
       });
     }
 

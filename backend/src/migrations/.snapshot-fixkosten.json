@@ -55,6 +55,57 @@
           "nullable": true,
           "mappedType": "integer"
         },
+        "language": {
+          "name": "language",
+          "type": "varchar(2)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 2,
+          "default": "'de'",
+          "mappedType": "string"
+        },
+        "reminders_enabled": {
+          "name": "reminders_enabled",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        },
+        "reminder_email": {
+          "name": "reminder_email",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "reminder_days_before": {
+          "name": "reminder_days_before",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "7",
+          "mappedType": "integer"
+        },
+        "reminder_overdue": {
+          "name": "reminder_overdue",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamptz",
@@ -92,6 +143,90 @@
       ],
       "checks": [],
       "foreignKeys": {},
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "key": {
+          "name": "key",
+          "type": "varchar(120)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 120,
+          "mappedType": "string"
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 6,
+          "mappedType": "datetime"
+        }
+      },
+      "name": "reminder_logs",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "reminder_logs_user_id_key_unique",
+          "columnNames": [
+            "user_id",
+            "key"
+          ],
+          "composite": true,
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
+          "keyName": "reminder_logs_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "reminder_logs_user_id_foreign": {
+          "constraintName": "reminder_logs_user_id_foreign",
+          "columnNames": [
+            "user_id"
+          ],
+          "localTableName": "public.reminder_logs",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.users",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      },
       "nativeEnums": {}
     },
     {
@@ -571,6 +706,145 @@
           "nullable": false,
           "mappedType": "integer"
         },
+        "due_date": {
+          "name": "due_date",
+          "type": "date",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "length": 0,
+          "mappedType": "date"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "'PAID'",
+          "enumItems": [
+            "PAID",
+            "SKIPPED"
+          ],
+          "mappedType": "enum"
+        },
+        "paid_date": {
+          "name": "paid_date",
+          "type": "date",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 0,
+          "mappedType": "date"
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "integer"
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "'MANUAL'",
+          "enumItems": [
+            "MANUAL",
+            "CSV"
+          ],
+          "mappedType": "enum"
+        },
+        "bank_reference": {
+          "name": "bank_reference",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        }
+      },
+      "name": "payments",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "payments_expense_id_due_date_unique",
+          "columnNames": [
+            "expense_id",
+            "due_date"
+          ],
+          "composite": true,
+          "constraint": true,
+          "primary": false,
+          "unique": true
+        },
+        {
+          "keyName": "payments_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {
+        "payments_expense_id_foreign": {
+          "constraintName": "payments_expense_id_foreign",
+          "columnNames": [
+            "expense_id"
+          ],
+          "localTableName": "public.payments",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.expenses",
+          "deleteRule": "cascade",
+          "updateRule": "cascade"
+        }
+      },
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "unsigned": false,
+          "autoincrement": true,
+          "primary": true,
+          "nullable": false,
+          "mappedType": "integer"
+        },
+        "expense_id": {
+          "name": "expense_id",
+          "type": "int",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "mappedType": "integer"
+        },
         "start_date": {
           "name": "start_date",
           "type": "date",
@@ -628,6 +902,16 @@
         },
         "cancelled": {
           "name": "cancelled",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        },
+        "consumer_contract": {
+          "name": "consumer_contract",
           "type": "boolean",
           "unsigned": false,
           "autoincrement": false,

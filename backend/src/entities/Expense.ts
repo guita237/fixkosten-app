@@ -4,6 +4,7 @@ import { Category } from './Category';
 import { Contract } from './Contract';
 import { Payout } from './Payout';
 import { PriceChange } from './PriceChange';
+import { Payment } from './Payment';
 import { Frequency } from '../enums/Frequency';
 
 @Entity({ tableName: 'expenses' })
@@ -57,6 +58,10 @@ export class Expense {
   // Betragsänderungen ab einem Datum; amountCents ist der Grundbetrag ab firstDueDate
   @OneToMany(() => PriceChange, (change) => change.expense, { orderBy: { validFrom: 'asc' } })
   priceChanges = new Collection<PriceChange>(this);
+
+  // Erfasste Zahlungen je Fälligkeit (bezahlt / ausgesetzt)
+  @OneToMany(() => Payment, (payment) => payment.expense, { orderBy: { dueDate: 'asc' } })
+  payments = new Collection<Payment>(this);
 
   @Property({ type: 'Date', onCreate: () => new Date() })
   createdAt: Date = new Date();

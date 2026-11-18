@@ -4,6 +4,7 @@ import { EntityManager } from '@mikro-orm/postgresql';
 import { ZodError } from 'zod';
 import { NotFoundError, ValidationError } from '../services/ExpenseService';
 import { User } from '../entities/User';
+import { CsvFormatError } from '../import/CsvReader';
 
 export function em(): EntityManager {
   const current = RequestContext.getEntityManager();
@@ -38,7 +39,7 @@ export function handle(fn: Handler) {
     } catch (err) {
       if (err instanceof ZodError) {
         res.status(400).json({ error: 'Validierungsfehler', details: err.issues });
-      } else if (err instanceof ValidationError) {
+      } else if (err instanceof ValidationError || err instanceof CsvFormatError) {
         res.status(400).json({ error: err.message });
       } else if (err instanceof NotFoundError) {
         res.status(404).json({ error: err.message });

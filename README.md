@@ -30,7 +30,7 @@ Nouvelle migration après un changement d'entité : `npm run migration:create`.
 ## Postman
 
 Dossier `postman/` :
-- `Fixkosten-API.postman_collection.json` : 35 requêtes et 62 tests, répartis dans 6 dossiers (System, Kategorien, Ausgaben, Dashboard, Fehlerfälle, Aufräumen).
+- `Fixkosten-API.postman_collection.json` : 52 requêtes et 100 tests, répartis dans 7 dossiers (System, Kategorien, Ausgaben, Dashboard, Fehlerfälle, V2, Aufräumen).
 - `Fixkosten-lokal.postman_environment.json` : `baseUrl = http://localhost:5000/api`.
 - `Fixkosten-Hetzner.postman_environment.json` : remplace `[DEINE-DOMAIN]` et mets un ID token Firebase dans `token`.
 
@@ -55,7 +55,7 @@ L'API écoute seulement sur `127.0.0.1:5000`. Il faut l'exposer via ton reverse 
 | --- | --- | --- |
 | GET | `/health` | Statut |
 | GET | `/me` | Utilisateur courant (créé à la 1re connexion) |
-| PUT | `/me` | `{ "monthlyNetIncomeCents": 300000 }` : revenu net mensuel (ou `null`) |
+| PUT | `/me` | Seuls les champs envoyés sont modifiés : `monthlyNetIncomeCents`, `language` (de/fr/en), `remindersEnabled`, `reminderEmail`, `reminderDaysBefore`, `reminderOverdue` |
 | GET/POST | `/expenses` | Liste (`?categoryId=`) / création |
 | GET/PUT/DELETE | `/expenses/:id` | Détail / modification / suppression |
 | POST | `/expenses/:id/price-changes` | `{ "validFrom", "amountCents", "note" }` : nouveau montant à partir d'une date |
@@ -67,6 +67,15 @@ L'API écoute seulement sur `127.0.0.1:5000`. Il faut l'exposer via ton reverse 
 | GET | `/contracts/deadlines` | Dates limites de résiliation, les plus urgentes d'abord |
 | GET | `/dashboard/month?month=YYYY-MM` | Bilan du mois : sorties, entrées (versements), solde, `availableCents` (= revenu + solde) |
 | GET | `/payouts/upcoming` | Versements à venir non encore reçus |
+| GET | `/payments?month=YYYY-MM` | Échéances du mois avec leur statut : `OPEN`, `OVERDUE` (plus de 3 jours de retard), `PAID`, `SKIPPED` + totaux |
+| GET | `/payments/overdue` | Impayés des 6 derniers mois |
+| PUT | `/expenses/:id/payments/:dueDate` | `{ "status": "PAID"\|"SKIPPED", "paidDate", "amountCents" }` : marquer une échéance |
+| DELETE | `/expenses/:id/payments/:dueDate` | Annuler (l'échéance redevient ouverte) |
+| GET | `/reminders/preview?date=` | Rappels qui seraient envoyés aujourd'hui (sans envoi) |
+| POST | `/reminders/run?date=` | Envoyer maintenant pour l'utilisateur courant |
+| POST | `/reminders/test` | E-mail de test |
+| POST | `/imports/csv` | Corps = fichier CSV brut (`Content-Type: text/csv`) : détecte le format et propose des correspondances. Rien n'est enregistré. |
+| POST | `/imports/confirm` | `{ "matches": [...] }` : enregistre les correspondances validées (paiements `PAID`/`CSV`, versements reçus) |
 
 Les routes de dashboard acceptent `?date=YYYY-MM-DD` pour simuler une autre date.
 
@@ -114,6 +123,24 @@ POST /api/expenses
 
 `/upcoming` renvoie maintenant un champ `type` : `EXPENSE` (sortie) ou `PAYOUT` (entrée).
 
+## V2 : paiements, rappels, import bancaire
+
+**Contrats grand public** (`contract.consumerContract: true`, pour les contrats conclus à partir du 01.03.2022, § 309 Nr. 9 BGB) : pendant la durée initiale, le préavis normal s'applique. Ensuite, il n'y a plus de reconduction de 12 mois : le contrat est résiliable à tout moment avec 1 mois de préavis (`earliestEndIfCancelledToday`).
+
+**Suivi des paiements** : une échéance sans entrée est `OPEN`, puis `OVERDUE` après 3 jours de tolérance. Le montant réellement payé peut différer du montant prévu (`differenceCents`).
+
+**Rappels par e-mail** (cron chaque jour à 7 h, Europe/Berlin) :
+- un seul e-mail récapitulatif par utilisateur, dans sa langue (de/fr/en) ;
+- dates limites de résiliation : un rappel au début de la période d'avance (`reminderDaysBefore`), puis un dernier rappel la veille ;
+- versements de tontine : un rappel pendant la période d'avance ;
+- impayés : seulement si `reminderOverdue`, et seulement sur les 14 derniers jours ;
+- `reminder_logs` empêche les doublons ; si un passage du cron est manqué, le rappel est envoyé au suivant.
+
+Envoi par **Resend** (API HTTP via le port 443, qui n'est pas bloqué par Hetzner, contrairement aux ports SMTP 25 et 465) : mets `RESEND_API_KEY` et `MAIL_FROM`. Le domaine de l'expéditeur (par exemple `guita.dev`) doit être vérifié dans Resend : enregistrements DNS SPF/DKIM chez Hostinger. Pour tester sans domaine vérifié : `MAIL_FROM=onboarding@resend.dev`, mais Resend n'envoie alors qu'à l'adresse de ton compte Resend. Le SMTP reste possible en option (`SMTP_*`). Sans clé ni SMTP, les e-mails sont seulement écrits dans le log.
+
+**Import CSV** : formats reconnus automatiquement : Sparkasse (CSV-CAMT V2), N26 (actuel et ancien), Revolut (seulement les opérations `COMPLETED`). Tout autre export (Vivid, etc.) est détecté par les noms de colonnes (date/Datum/Buchungstag, montant/Betrag/Amount, …), même avec des lignes d'en-tête avant le tableau. En dernier recours, indique les colonnes à la main : `?dateColumn=Datum&amountColumn=Betrag&counterpartyColumn=Empfänger&referenceColumn=Verwendungszweck`. L'encodage UTF-8 ou Latin-1 est détecté, ainsi que le séparateur `;`, `,` ou tabulation.
+Rapprochement : montant (exact, ou ±2 % / 1 €), date (±10 jours autour de l'échéance), mots du nom ou du fournisseur dans le libellé. Une échéance déjà payée n'est jamais proposée deux fois. Un montant différent n'est proposé que si le nom correspond nettement et que la date est à 3 jours près (confiance `MEDIUM`).
+
 ## Règles métier
 
 - **Coût mensuel** = montant ÷ nombre de mois de la période, arrondi au centime.
@@ -131,18 +158,20 @@ backend/src
 ├── app.ts / server.ts
 ├── config/        db, mikro-orm, firebase
 ├── controllers/   Expense, Category, Dashboard (+ gestion d'erreurs centrale)
-├── entities/      User, Category, Expense, Contract, Payout, PriceChange
+├── entities/      User, Category, Expense, Contract, Payout, PriceChange, Payment, ReminderLog
+├── import/        CsvReader, BankFormats, TransactionMatcher, ImportService
+├── jobs/          reminderJob (cron)
 ├── enums/         Frequency, NoticeUnit
 ├── middleware/    auth (Firebase ou mode dev)
 ├── migrations/
 ├── routes/
-├── services/      CostCalculator + BalanceCalculator (purs), ExpenseService, DashboardService
+├── services/      purs : CostCalculator, BalanceCalculator, PaymentTracker, ReminderPlanner
+│                  DB : ExpenseService, DashboardService, PaymentService, ReminderService, Mailer
 ├── utils/         dateOnly (dates YYYY-MM-DD, calculs en UTC)
 └── validation/    schémas zod
 ```
 
 ## Prochaines étapes
 
-1. Frontend React + Vite : liste, formulaire, dashboard
-2. Rappels de résiliation (node-cron + e-mail)
-3. CI GitHub Actions → Hetzner
+1. Déploiement : sauvegarde, durcissement de l'API, CI GitHub Actions → Hetzner
+2. Frontend React + Vite à partir de la maquette

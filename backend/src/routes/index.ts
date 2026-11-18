@@ -1,10 +1,13 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { requireAuth } from '../middleware/auth.middleware';
 import { handle } from '../controllers/helpers';
 import { ExpenseController } from '../controllers/ExpenseController';
 import { CategoryController } from '../controllers/CategoryController';
 import { DashboardController } from '../controllers/DashboardController';
 import { MeController } from '../controllers/MeController';
+import { PaymentController } from '../controllers/PaymentController';
+import { ReminderController } from '../controllers/ReminderController';
+import { ImportController } from '../controllers/ImportController';
 
 export const apiRouter = Router();
 
@@ -35,3 +38,17 @@ apiRouter.get('/dashboard/month', handle(DashboardController.month));
 apiRouter.get('/upcoming', handle(DashboardController.upcoming));
 apiRouter.get('/payouts/upcoming', handle(DashboardController.payouts));
 apiRouter.get('/contracts/deadlines', handle(DashboardController.deadlines));
+
+apiRouter.get('/payments', handle(PaymentController.month));
+apiRouter.get('/payments/overdue', handle(PaymentController.overdue));
+apiRouter.put('/expenses/:id/payments/:dueDate', handle(PaymentController.record));
+apiRouter.delete('/expenses/:id/payments/:dueDate', handle(PaymentController.clear));
+
+apiRouter.get('/reminders/preview', handle(ReminderController.preview));
+apiRouter.post('/reminders/run', handle(ReminderController.run));
+apiRouter.post('/reminders/test', handle(ReminderController.test));
+
+// CSV kommt roh (nicht als JSON); max. 5 MB
+const rawCsv = express.raw({ type: ['text/csv', 'text/plain', 'application/csv', 'application/octet-stream', 'application/vnd.ms-excel'], limit: '5mb' });
+apiRouter.post('/imports/csv', rawCsv, handle(ImportController.preview));
+apiRouter.post('/imports/confirm', handle(ImportController.confirm));

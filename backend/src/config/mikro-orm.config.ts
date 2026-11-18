@@ -8,9 +8,11 @@ import { Expense } from '../entities/Expense';
 import { Contract } from '../entities/Contract';
 import { Payout } from '../entities/Payout';
 import { PriceChange } from '../entities/PriceChange';
+import { Payment } from '../entities/Payment';
+import { ReminderLog } from '../entities/ReminderLog';
 
 export default defineConfig({
-  entities: [User, Category, Expense, Contract, Payout, PriceChange],
+  entities: [User, Category, Expense, Contract, Payout, PriceChange, Payment, ReminderLog],
   host: process.env.DB_HOST ?? 'localhost',
   port: Number(process.env.DB_PORT ?? 5432),
   user: process.env.DB_USER ?? 'fixkosten',
