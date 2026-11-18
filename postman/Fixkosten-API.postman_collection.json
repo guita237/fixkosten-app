@@ -1,0 +1,1338 @@
+{
+  "info": {
+    "_postman_id": "8271296a-3e18-46d2-82bf-322114ed569c",
+    "name": "Fixkosten-App API",
+    "description": "Alle Endpunkte der Fixkosten-API. Lokal mit AUTH_MODE=dev kein Token nötig; in Produktion ein Firebase-ID-Token in der Umgebungsvariable `token`.\n\nOhne gewählte Umgebung gilt baseUrl = http://localhost:5000/api (Collection-Variable).\n\nDie Ordner der Reihe nach ausführen (Collection Runner): IDs werden automatisch in Collection-Variablen gespeichert.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "0 – System",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"ok\", () => pm.expect(pm.response.json().status).to.eql(\"ok\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me (Benutzer anlegen/abrufen)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"hat id\", () => pm.expect(pm.response.json().id).to.be.a(\"number\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me – Nettoeinkommen setzen",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthlyNetIncomeCents\": 300000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"gespeichert\", () => pm.expect(pm.response.json().monthlyNetIncomeCents).to.eql(300000));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1 – Kategorien",
+      "item": [
+        {
+          "name": "Kategorie anlegen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tontinen {{$timestamp}}\",\n  \"color\": \"#db2777\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"categoryId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Kategorien auflisten",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Kategorie ändern",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{categoryId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tontinen (geändert) {{$timestamp}}\",\n  \"color\": \"#be185d\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 – Ausgaben",
+      "item": [
+        {
+          "name": "Ausgabe anlegen – Miete (monatlich)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Miete\",\n  \"amountCents\": 85000,\n  \"frequency\": \"MONTHLY\",\n  \"firstDueDate\": \"2026-08-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"mieteId\", pm.response.json().id);",
+                  "pm.test(\"monatlich = Betrag\", () => pm.expect(pm.response.json().monthlyCostCents).to.eql(85000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgabe anlegen – Kfz mit Vertrag (jährlich)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kfz-Versicherung\",\n  \"categoryId\": {{categoryId}},\n  \"amountCents\": 60000,\n  \"frequency\": \"YEARLY\",\n  \"firstDueDate\": \"2027-01-01\",\n  \"paymentMethod\": \"Lastschrift\",\n  \"contract\": {\n    \"startDate\": \"2026-01-01\",\n    \"endDate\": \"2026-12-31\",\n    \"noticeValue\": 1,\n    \"noticeUnit\": \"MONTHS\",\n    \"autoRenewMonths\": 12,\n    \"cancelled\": false\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"kfzId\", pm.response.json().id);",
+                  "pm.test(\"600 €/Jahr = 50 €/Monat\", () => pm.expect(pm.response.json().monthlyCostCents).to.eql(5000));",
+                  "pm.test(\"Vertrag gespeichert\", () => pm.expect(pm.response.json().contract.autoRenewMonths).to.eql(12));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgabe anlegen – Tontine mit Auszahlung",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tontine A\",\n  \"categoryId\": {{categoryId}},\n  \"amountCents\": 10000,\n  \"frequency\": \"MONTHLY\",\n  \"firstDueDate\": \"2026-08-05\",\n  \"endDate\": \"2027-07-31\",\n  \"payouts\": [\n    {\n      \"date\": \"2027-03-05\",\n      \"amountCents\": 120000,\n      \"received\": false\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set(\"tontineId\", b.id);",
+                  "pm.test(\"1 Auszahlung\", () => pm.expect(b.payouts).to.have.lengthOf(1));",
+                  "pm.test(\"Enddatum gespeichert\", () => pm.expect(b.endDate).to.eql(\"2027-07-31\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgaben auflisten",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgaben nach Kategorie filtern",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses?categoryId={{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ],
+              "query": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"nur diese Kategorie\", () => pm.response.json().forEach(e => pm.expect(e.category.id).to.eql(Number(pm.collectionVariables.get(\"categoryId\")))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgabe abrufen",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{tontineId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{tontineId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgabe ändern – ohne payouts (bleiben erhalten)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{tontineId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{tontineId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tontine A\",\n  \"categoryId\": {{categoryId}},\n  \"amountCents\": 11000,\n  \"frequency\": \"MONTHLY\",\n  \"firstDueDate\": \"2026-08-05\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Auszahlung noch da\", () => pm.expect(pm.response.json().payouts).to.have.lengthOf(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgabe ändern – payouts ersetzen",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{tontineId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{tontineId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tontine A\",\n  \"categoryId\": {{categoryId}},\n  \"amountCents\": 10000,\n  \"frequency\": \"MONTHLY\",\n  \"firstDueDate\": \"2026-08-05\",\n  \"endDate\": \"2027-07-31\",\n  \"payouts\": [\n    {\n      \"date\": \"2027-04-05\",\n      \"amountCents\": 130000,\n      \"received\": false\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"neues Datum\", () => pm.expect(pm.response.json().payouts[0].date).to.eql(\"2027-04-05\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preisänderung anlegen – Miete ab 01.01.2027",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{mieteId}}/price-changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{mieteId}}",
+                "price-changes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"validFrom\": \"2027-01-01\",\n  \"amountCents\": 88000,\n  \"note\": \"Mieterhöhung\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.collectionVariables.set(\"priceChangeId\", b.priceChanges[0].id);",
+                  "pm.test(\"Grundbetrag bleibt\", () => pm.expect(b.amountCents).to.eql(85000));",
+                  "pm.test(\"1 Preisänderung\", () => pm.expect(b.priceChanges).to.have.lengthOf(1));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 – Dashboard",
+      "item": [
+        {
+          "name": "Monatliche Fixkosten (normalisiert)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/monthly",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "monthly"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Summe vorhanden\", () => pm.expect(pm.response.json().totalMonthlyCents).to.be.a(\"number\"));",
+                  "const s = pm.response.json();",
+                  "pm.test(\"Einkommen + Rest\", () => { pm.expect(s.incomeCents).to.eql(300000); pm.expect(s.remainingCents).to.eql(s.incomeCents - s.totalMonthlyCents); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Monatsbilanz (Auszahlungsmonat)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/month?month=2027-04",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "month"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2027-04"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"Einnahme im April\", () => pm.expect(b.incomingCents).to.be.at.least(130000));",
+                  "pm.test(\"Saldo = Ein - Aus\", () => pm.expect(b.netCents).to.eql(b.incomingCents - b.outgoingCents));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nächste Zahlungen (2 Monate)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/upcoming?months=2&date=2026-11-18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "upcoming"
+              ],
+              "query": [
+                {
+                  "key": "months",
+                  "value": "2"
+                },
+                {
+                  "key": "date",
+                  "value": "2026-11-18"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"hat type\", () => pm.response.json().forEach(e => pm.expect([\"EXPENSE\",\"PAYOUT\"]).to.include(e.type)));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Kommende Auszahlungen",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payouts/upcoming?date=2026-11-18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payouts",
+                "upcoming"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-11-18"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Kündigungsfristen",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/contracts/deadlines?date=2026-11-18",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contracts",
+                "deadlines"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-11-18"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const kfz = pm.response.json().find(d => d.expenseId === Number(pm.collectionVariables.get(\"kfzId\")));",
+                  "pm.test(\"Kfz: kündigen bis 30.11.2026\", () => pm.expect(kfz.cancellationDeadline).to.eql(\"2026-11-30\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Monatliche Fixkosten 2027 (neuer Mietpreis)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/monthly?date=2027-02-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "monthly"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2027-02-01"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"enthält 880 € Miete\", () => pm.expect(pm.response.json().totalMonthlyCents).to.be.at.least(88000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Kfz kündigen (rechtzeitig)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{kfzId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{kfzId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kfz-Versicherung\",\n  \"categoryId\": {{categoryId}},\n  \"amountCents\": 60000,\n  \"frequency\": \"YEARLY\",\n  \"firstDueDate\": \"2027-01-01\",\n  \"contract\": {\n    \"startDate\": \"2026-01-01\",\n    \"endDate\": \"2026-12-31\",\n    \"noticeValue\": 1,\n    \"noticeUnit\": \"MONTHS\",\n    \"autoRenewMonths\": 12,\n    \"cancelled\": true,\n    \"cancelledOn\": \"2026-11-20\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"endet 31.12.2026\", () => pm.expect(pm.response.json().effectiveEndDate).to.eql(\"2026-12-31\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Monatsbilanz Januar 2027 (ohne Kfz, neue Miete)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/month?month=2027-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "month"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2027-01"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test(\"keine Kfz-Zahlung\", () => pm.expect(b.entries.filter(e => e.expenseId === Number(pm.collectionVariables.get(\"kfzId\")))).to.have.lengthOf(0));",
+                  "pm.test(\"Miete 880 €\", () => pm.expect(b.entries.find(e => e.expenseId === Number(pm.collectionVariables.get(\"mieteId\"))).amountCents).to.eql(88000));",
+                  "pm.test(\"verfügbar = Einkommen + Saldo\", () => pm.expect(b.availableCents).to.eql(b.incomeCents + b.netCents));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Monatsbilanz August 2027 (Tontine beendet)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/month?month=2027-08",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dashboard",
+                "month"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "2027-08"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"keine Tontine mehr\", () => pm.expect(pm.response.json().entries.filter(e => e.expenseId === Number(pm.collectionVariables.get(\"tontineId\")))).to.have.lengthOf(0));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 – Fehlerfälle",
+      "item": [
+        {
+          "name": "Validierungsfehler (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"amountCents\": -1,\n  \"frequency\": \"WEEKLY\",\n  \"firstDueDate\": \"2026-02-30\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nicht gefunden (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "999999"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fremde Daten unsichtbar (dev)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-dev-user",
+                "value": "anderer-benutzer"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{tontineId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{tontineId}}"
+              ]
+            },
+            "description": "Nur im Dev-Modus (AUTH_MODE=dev): ein anderer Benutzer darf die Ausgabe nicht sehen."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enddatum vor erster Fälligkeit (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test\",\n  \"amountCents\": 1000,\n  \"frequency\": \"MONTHLY\",\n  \"firstDueDate\": \"2027-01-01\",\n  \"endDate\": \"2026-12-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Preisänderung zu früh (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{mieteId}}/price-changes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{mieteId}}",
+                "price-changes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"validFrom\": \"2026-01-01\",\n  \"amountCents\": 90000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5 – Aufräumen",
+      "item": [
+        {
+          "name": "Preisänderung löschen",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{mieteId}}/price-changes/{{priceChangeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{mieteId}}",
+                "price-changes",
+                "{{priceChangeId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"keine Preisänderung mehr\", () => pm.expect(pm.response.json().priceChanges).to.have.lengthOf(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgabe löschen – Tontine",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{tontineId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{tontineId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgabe löschen – Kfz",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{kfzId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{kfzId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ausgabe löschen – Miete",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/expenses/{{mieteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "expenses",
+                "{{mieteId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Kategorie löschen",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/{{categoryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "{{categoryId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nettoeinkommen zurücksetzen",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthlyNetIncomeCents\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api"
+    },
+    {
+      "key": "categoryId",
+      "value": ""
+    },
+    {
+      "key": "mieteId",
+      "value": ""
+    },
+    {
+      "key": "kfzId",
+      "value": ""
+    },
+    {
+      "key": "tontineId",
+      "value": ""
+    },
+    {
+      "key": "priceChangeId",
+      "value": ""
+    }
+  ]
+}
