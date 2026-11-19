@@ -146,7 +146,7 @@ POST /api/expenses
 ```json
 POST /api/expenses
 {
-  "name": "Tontine A",
+  "name": "Tontine 1",
   "categoryId": 3,
   "amountCents": 10000,
   "frequency": "MONTHLY",
