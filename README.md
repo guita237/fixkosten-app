@@ -146,7 +146,7 @@ POST /api/expenses
 ```json
 POST /api/expenses
 {
-  "name": "Tontine 1",
+  "name": "Tontine A",
   "categoryId": 3,
   "amountCents": 10000,
   "frequency": "MONTHLY",
@@ -208,3 +208,7 @@ backend/src
 ## Prochaines étapes
 
 1. Déploiement : sauvegarde, durcissement de l'API, CI GitHub Actions → Hetzner
+
+## Mise en ligne
+
+Voir **DEPLOY.md** (DNS, HTTPS, Firebase, sauvegarde, CI/CD).

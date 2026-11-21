@@ -1,0 +1,11 @@
+# Produktion (Hetzner): docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+services:
+  api:
+    # Kein Host-Port in Produktion (5000 ist auf dem Server evtl. schon belegt);
+    # die API ist nur über den web-Container (/api) erreichbar
+    ports: !reset []
+
+  web:
+    # Nur lokal am Server; der Reverse Proxy leitet fixkosten.guita.dev hierhin
+    ports: !override
+      - "127.0.0.1:8086:80"

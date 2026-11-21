@@ -1,5 +1,6 @@
 import express, { Router } from 'express';
 import { requireAuth } from '../middleware/auth.middleware';
+import { heavyLimiter } from '../middleware/security';
 import { handle } from '../controllers/helpers';
 import { ExpenseController } from '../controllers/ExpenseController';
 import { CategoryController } from '../controllers/CategoryController';
@@ -45,10 +46,10 @@ apiRouter.put('/expenses/:id/payments/:dueDate', handle(PaymentController.record
 apiRouter.delete('/expenses/:id/payments/:dueDate', handle(PaymentController.clear));
 
 apiRouter.get('/reminders/preview', handle(ReminderController.preview));
-apiRouter.post('/reminders/run', handle(ReminderController.run));
-apiRouter.post('/reminders/test', handle(ReminderController.test));
+apiRouter.post('/reminders/run', heavyLimiter, handle(ReminderController.run));
+apiRouter.post('/reminders/test', heavyLimiter, handle(ReminderController.test));
 
 // CSV kommt roh (nicht als JSON); max. 5 MB
 const rawCsv = express.raw({ type: ['text/csv', 'text/plain', 'application/csv', 'application/octet-stream', 'application/vnd.ms-excel'], limit: '5mb' });
-apiRouter.post('/imports/csv', rawCsv, handle(ImportController.preview));
+apiRouter.post('/imports/csv', heavyLimiter, rawCsv, handle(ImportController.preview));
 apiRouter.post('/imports/confirm', handle(ImportController.confirm));

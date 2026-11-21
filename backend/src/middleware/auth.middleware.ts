@@ -61,6 +61,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     req.user = user;
     next();
   } catch (err) {
+    // Grund ins Log (z. B. abgelaufenes Token oder falsche Firebase-Konfiguration), nicht an den Client
+    console.warn('Auth fehlgeschlagen:', (err as Error).message);
     res.status(401).json({ error: 'Ungültiges Token' });
   }
 }
