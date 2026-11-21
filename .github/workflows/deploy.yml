@@ -71,15 +71,20 @@ jobs:
             echo "Pruning dangling images"
             docker image prune -f
 
-            echo "Waiting for API health"
+                        echo "Waiting for API health"
+            healthy=0
             for i in $(seq 1 30); do
               if curl -fsS http://127.0.0.1:8086/api/health > /dev/null; then
-                echo "Deployment completed"
-                exit 0
+                healthy=1
+                break
               fi
               sleep 2
             done
-            echo "API not healthy" >&2
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=80 api
-            exit 1
+            if [ "$healthy" != 1 ]; then
+              echo "API not healthy" >&2
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=80 api
+              false
+            fi
+
+            echo "Deployment completed"
           EOF
